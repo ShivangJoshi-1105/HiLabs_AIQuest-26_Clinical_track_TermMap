@@ -220,23 +220,38 @@ data/raw/icd10cm_codes.xlsx
 data/raw/SNOMEDCT_US_codes_and_descriptions.xlsx
 ```
 
-Model artifacts produced by the GPU steps go in `artifacts/`:
+### Trained artifacts
 
-```
-artifacts/dense_<system>.emb.npy, dense_<system>.codes.npy                   SapBERT description embeddings
-artifacts/dense_biolord_<system>.emb.npy, dense_biolord_<system>.codes.npy   BioLORD description embeddings
-artifacts/ce_model/                                                          fine-tuned cross-encoder
+The trained engine, the fine-tuned cross-encoder and the description embeddings are derived from the challenge
+data, so they are not stored in this repository. They are kept in a **private** Hugging Face Hub repository.
+With read access to it, set `HF_TOKEN` and `TERMMAP_ARTIFACTS_REPO` in `.env` (see `.env.example`) and run:
+
+```bash
+python -m termmap fetch-artifacts                  # about 2.8 GB, into artifacts/
+python -m termmap fetch-artifacts --no-embeddings  # about 0.5 GB, skips the description embeddings
 ```
 
-Without them the engine still runs end to end, on lexical retrieval and the ranker alone.
+| File in `artifacts/` | Content |
+|---|---|
+| `engine.joblib` | ranker, alias index, priors, coding-team crosswalk |
+| `ce_model/` | fine-tuned MedCPT cross-encoder |
+| `terminology_*.parquet` | parsed dictionaries |
+| `dense_hits_*.parquet` | precomputed dense hits for the labelled terms |
+| `dense_*.emb.npy`, `dense_*.codes.npy` | SapBERT and BioLORD description embeddings, used to encode new terms |
+
+Every artifact can also be rebuilt from the challenge files: `python -m termmap train` rebuilds the engine, and the
+notebooks in [GPU steps](#gpu-steps) rebuild the embeddings and the cross-encoder. Without the cross-encoder and
+embeddings the engine still runs end to end, on lexical retrieval and the ranker.
 
 ### Environment variables
 
-Copy `.env.example` to `.env` if needed. None of the variables is required.
+Copy `.env.example` to `.env` and fill in the values. `.env` is listed in `.gitignore`; keys are only read from
+the environment and are never written to disk by the code.
 
 | Variable | Purpose |
 |---|---|
-| `HF_TOKEN` | Hugging Face token, used only when downloading encoder models |
+| `HF_TOKEN` | Hugging Face token: read access to the artifacts repository, and model downloads |
+| `TERMMAP_ARTIFACTS_REPO` | Hub repository id holding the trained artifacts |
 | `TERMMAP_FORCE_CPU` | set to `1` to keep encoders on CPU when a GPU is present |
 | `TERMMAP_CPU_THREADS` | threads used by encoders on CPU (default 2) |
 
@@ -244,13 +259,13 @@ Copy `.env.example` to `.env` if needed. None of the variables is required.
 
 ## Running the engine
 
-**Reproduce the submitted predictions (single command):**
+**Reproduce the submitted predictions (single command, after `fetch-artifacts`):**
 
 ```bash
 python -m termmap predict --input data/raw/<evaluation_file>.csv --output outputs/predictions.csv
 ```
 
-The first run parses the dictionaries, trains the engine on `data/raw/hackathon_train.csv` and caches everything
+Without fetched artifacts, the first run parses the dictionaries, trains the engine on `data/raw/hackathon_train.csv` and caches everything
 under `artifacts/`. Later runs reuse the cache. The input must contain an `entity` or `clinical_entity` column.
 `chunk_text` is used as context and `subconcept` as a prior when present, and `chunk_id` is carried through. New terms are
 encoded on the fly when the description embeddings are present, and scored by the cross-encoder when
@@ -335,9 +350,11 @@ termmap/
   stage2.py        cross-encoder and LLM requests, fine-tuning data, score blending
   coupling.py      coding-team crosswalk between ICD-10-CM and SNOMED CT
   evaluate.py      held-out evaluation and diagnostics
+  hub.py           fetching artifacts from the private Hub repository
   __main__.py      command line interface
 app.py             Streamlit demo
 scripts/error_analysis.py
+scripts/upload_artifacts.py
 data/resources/abbreviations.tsv
 configs/default.yaml
 notebooks/         GPU notebooks

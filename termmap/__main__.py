@@ -7,6 +7,7 @@
     python -m termmap embed      build the dense description index
     python -m termmap export-queries   list every query string for offline dense search
     python -m termmap export-stage2    write cross-encoder and LLM requests for an input file
+    python -m termmap fetch-artifacts  download trained artifacts from the Hub repository
 """
 from __future__ import annotations
 
@@ -125,6 +126,12 @@ def cmd_export_stage2(cfg: Config, args) -> None:
         write_jsonl(items, Path(cfg.output_dir) / f"{k}_requests{suffix}.jsonl")
 
 
+def cmd_fetch_artifacts(cfg: Config, args) -> None:
+    from .hub import fetch
+
+    fetch(cfg, args.repo, embeddings=not args.no_embeddings)
+
+
 def cmd_embed(cfg: Config, args) -> None:
     from .dense import build
 
@@ -135,6 +142,9 @@ def cmd_embed(cfg: Config, args) -> None:
 
 
 def main(argv=None) -> None:
+    from .hub import load_dotenv
+
+    load_dotenv()
     p = argparse.ArgumentParser(prog="termmap")
     p.add_argument("--config", default=None, help="YAML config file")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -156,6 +166,9 @@ def main(argv=None) -> None:
     pq = sub.add_parser("export-queries")
     pq.add_argument("--input", nargs="*", help="additional term files, e.g. the evaluation file")
     pq.add_argument("--output", default="outputs/dense_queries.txt")
+    pf = sub.add_parser("fetch-artifacts")
+    pf.add_argument("--repo", default=None, help="Hub repository id (default: TERMMAP_ARTIFACTS_REPO)")
+    pf.add_argument("--no-embeddings", action="store_true", help="skip the description embeddings")
     pl = sub.add_parser("export-stage2")
     pl.add_argument("--input", required=True)
     pl.add_argument("--name", default="", help="suffix for the request file names")
@@ -170,7 +183,7 @@ def main(argv=None) -> None:
     cfg = Config.load(args.config)
     {"train": cmd_train, "predict": cmd_predict, "evaluate": cmd_evaluate,
      "map": cmd_map, "embed": cmd_embed, "export-queries": cmd_export_queries,
-     "export-stage2": cmd_export_stage2}[args.cmd](cfg, args)
+     "export-stage2": cmd_export_stage2, "fetch-artifacts": cmd_fetch_artifacts}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":
