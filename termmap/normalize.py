@@ -53,18 +53,37 @@ class AbbreviationExpander:
     chunk context decide between them.
     """
 
-    def __init__(self, table: dict[str, list[str]]):
+    def __init__(self, table: dict[str, list[str]], cues: dict[tuple[str, str], set[str]] | None = None):
         self.table = table
+        self.cues = cues or {}  # (abbreviation, reading) -> context words that signal the reading
 
     @classmethod
     def from_file(cls, path: Path) -> "AbbreviationExpander":
         table: dict[str, list[str]] = {}
+        cues: dict[tuple[str, str], set[str]] = {}
         with open(path, "r", encoding="utf-8") as fh:
             for row in csv.reader(fh, delimiter="\t"):
                 if not row or row[0].startswith("#") or len(row) < 2:
                     continue
-                table.setdefault(clean(row[0]), []).append(clean(row[1]))
-        return cls(table)
+                abbr, reading = clean(row[0]), clean(row[1])
+                table.setdefault(abbr, []).append(reading)
+                if len(row) > 2 and row[2].strip():
+                    cues[(abbr, reading)] = {clean(c) for c in row[2].split(",") if clean(c)}
+        return cls(table, cues)
+
+    def _support(self, abbr: str, reading: str, ctx: set[str]) -> int:
+        return len((set(reading.split()) | self.cues.get((abbr, reading), set())) & ctx)
+
+    def resolve(self, abbr: str, context: str) -> str | None:
+        """The single reading of an ambiguous abbreviation that the context supports, if any."""
+        opts = self.table.get(abbr, [])
+        if len(opts) < 2:
+            return None
+        ctx = content_tokens(context) - {abbr}
+        scores = sorted(((self._support(abbr, o, ctx), o) for o in opts), reverse=True)
+        if scores[0][0] > 0 and scores[0][0] > scores[1][0]:
+            return scores[0][1]
+        return None
 
     def variants(self, text: str, context: str = "", limit: int = 4) -> list[str]:
         base = clean(text)
@@ -72,6 +91,14 @@ class AbbreviationExpander:
         hits = [(i, self.table[t]) for i, t in enumerate(toks) if t in self.table]
         if not hits:
             return [base]
+        # a bare ambiguous abbreviation whose reading the context settles is searched
+        # under that reading only, so frequent readings cannot outvote the context
+        if len(toks) <= 2 and len(hits) == 1:
+            reading = self.resolve(toks[hits[0][0]], context)
+            if reading:
+                new = list(toks)
+                new[hits[0][0]] = reading
+                return [" ".join(new)]
         ctx = content_tokens(context)
         out = [base]
         # one fully expanded variant per reading of the first ambiguous token,

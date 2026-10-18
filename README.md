@@ -83,8 +83,10 @@ TermMap is a retrieve-then-rerank cascade. Retrieval is tuned for recall and the
 ```
 
 **Normalisation.** Terms are lowercased and stripped of markup and punctuation. Abbreviations are expanded from
-a curated table into one or more query variants. Ambiguous abbreviations keep every reading, ordered by how well
-each reading is supported by the chunk text.
+a curated table into one or more query variants. Each reading of an ambiguous abbreviation carries context cue
+words (right atrium: *echo, tricuspid, rv*; rheumatoid arthritis: *methotrexate, synovitis, stiffness*). When the
+chunk text supports exactly one reading, the term is searched under that reading; otherwise every reading is kept
+and the ranker decides.
 
 **Retrieval.** Each query variant is searched against every description of the target system:
 
@@ -153,6 +155,11 @@ the ranker or the cross-encoder. Test terms: 472 ICD-10-CM, 1,529 SNOMED CT. In 
 
 Blend weights were chosen with cross-fitting: selected on one half of the test terms, scored on the other half.
 The cross-fitted accuracy equals the reported accuracy for both systems.
+
+Context cues for ambiguous abbreviations (`data/resources/abbreviations.tsv`, third column) were added after the
+table above. On the same split they leave ICD-10-CM at 68.9 with the cross-encoder, and move the SNOMED CT ranker
+stage from 49.6 to 49.7. Bare abbreviations whose reading the context settles (`ra` next to methotrexate vs. in an
+echo report) are searched under that reading only.
 
 **Diagnostics**
 

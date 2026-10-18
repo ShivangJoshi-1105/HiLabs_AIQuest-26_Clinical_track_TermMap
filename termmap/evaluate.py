@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
@@ -131,7 +132,9 @@ def coupling_metrics(engine, system: str, te: pd.DataFrame, preds, other_preds):
 def run(cfg: Config, train_df: pd.DataFrame, frac: float = 0.8, out_dir: Path | None = None) -> dict:
     out_dir = Path(out_dir or cfg.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    cfg.live_stage2 = False
+    # live cross-encoder scoring stays off unless the model in artifacts/ce_model was
+    # fine-tuned on this split's training portion only (TERMMAP_EVAL_LIVE_CE=1)
+    cfg.live_stage2 = os.environ.get("TERMMAP_EVAL_LIVE_CE", "0") == "1"
     dev_train, dev_test = split(train_df, frac, cfg.seed)
     log.info("dev split: %d train / %d test", len(dev_train), len(dev_test))
     engine = TermMapEngine(cfg).fit(dev_train)
@@ -172,7 +175,7 @@ def run(cfg: Config, train_df: pd.DataFrame, frac: float = 0.8, out_dir: Path | 
     for system in SYSTEMS:
         te, final, rows = finals[system]
         other = SYSTEMS[1] if system == SYSTEMS[0] else SYSTEMS[0]
-        other_preds = engine.adjudicate(other, te, engine.mapper(other).predict(te))
+        other_preds = engine.adjudicate(other, te, engine.mapper(other).predict(te), weights={})
         cm, coupled = coupling_metrics(engine, system, te, final, other_preds)
         report[system].update(cm)
         rows["pred_coupled"] = [p.code for p in coupled]

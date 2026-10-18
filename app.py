@@ -21,11 +21,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 NAMES = {"ICD10CM": "ICD-10-CM", "SNOMEDCT_US": "SNOMED CT"}
 EXAMPLES = {
     "OCR noise": ("chronickidney disease stag 3", ""),
-    "MS, cardiology note": ("ms", "loud diastolic rumble at apex, echo shows thickened mitral leaflets with reduced valve area"),
-    "MS, neurology note": ("ms", "relapsing remitting course, new periventricular lesions on mri brain, started on ocrelizumab"),
+    "RA, rheumatology": ("ra", "morning stiffness in hands lasting 2 hours, positive rheumatoid factor, on methotrexate"),
+    "RA, echo report": ("ra", "echo: dilated ra and rv, tricuspid regurgitation"),
+    "MS, neurology": ("ms", "relapsing remitting course, new periventricular lesions on mri brain, started on ocrelizumab"),
+    "MS, ward note": ("ms", "patient confused, altered, oriented to self only"),
     "Unspecified diabetes": ("diabetes", ""),
     "Specific diabetes": ("type 2 diabetes with diabetic neuropathy", "numbness in both feet, a1c 8.2"),
-    "Shorthand": ("htn", "bp 152/94 on lisinopril"),
 }
 
 st.set_page_config(page_title="TermMap", layout="wide")

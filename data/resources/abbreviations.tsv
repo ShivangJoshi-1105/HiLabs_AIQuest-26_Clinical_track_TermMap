@@ -1,4 +1,4 @@
-# abbreviation	expansion
+# abbreviation	expansion	context cues (optional, comma-separated)
 # One row per reading. Ambiguous abbreviations have several rows; the first row is the default reading.
 aaa	abdominal aortic aneurysm
 abd	abdominal
@@ -40,8 +40,8 @@ bka	below knee amputation
 bmi	body mass index
 bmp	basic metabolic panel
 bph	benign prostatic hyperplasia
-bpd	bipolar disorder
-bpd	bronchopulmonary dysplasia
+bpd	bipolar disorder	mania,manic,lithium,depression,mood,psychiatry,quetiapine
+bpd	bronchopulmonary dysplasia	premature,preterm,neonatal,nicu,oxygen,infant
 brbpr	bright red blood per rectum
 brpr	bright red blood per rectum
 bue	bilateral upper extremities
@@ -64,7 +64,6 @@ cmp	comprehensive metabolic panel
 cmv	cytomegalovirus
 cns	central nervous system
 copd	chronic obstructive pulmonary disease
-cp	chest pain
 cpap	continuous positive airway pressure
 crf	chronic renal failure
 cva	cerebrovascular accident
@@ -83,8 +82,8 @@ dm1	type 1 diabetes mellitus
 dm2	type 2 diabetes mellitus
 dmii	type 2 diabetes mellitus
 dmt2	type 2 diabetes mellitus
-dme	durable medical equipment
-dme	diabetic macular edema
+dme	durable medical equipment	walker,wheelchair,equipment,cane,commode,oxygen,supplies
+dme	diabetic macular edema	macular,retina,retinopathy,ophthalmology,anti-vegf,eye
 dnr	do not resuscitate
 dni	do not intubate
 doe	dyspnea on exertion
@@ -93,8 +92,8 @@ dx	diagnosis
 ecg	electrocardiogram
 ekg	electrocardiogram
 echo	echocardiogram
-ed	erectile dysfunction
-ed	emergency department
+ed	erectile dysfunction	erectile,sildenafil,tadalafil,impotence,libido,urology
+ed	emergency department	presented,arrived,triage,admitted,er,ambulance,visit
 egd	esophagogastroduodenoscopy
 esrd	end stage renal disease
 etoh	alcohol
@@ -152,9 +151,9 @@ mdd	major depressive disorder
 mgus	monoclonal gammopathy of undetermined significance
 mi	myocardial infarction
 mr	mitral regurgitation
-ms	multiple sclerosis
-ms	mitral stenosis
-ms	mental status
+ms	multiple sclerosis	relapsing,remitting,lesions,demyelinating,periventricular,ocrelizumab,interferon,natalizumab,neurology,optic neuritis
+ms	mitral stenosis	mitral,valve,rumble,diastolic,murmur,echo,commissurotomy,leaflets,valvuloplasty
+ms	mental status	altered,confused,confusion,oriented,orientation,gcs,lethargic,obtunded,delirium,alert
 mrsa	methicillin resistant staphylococcus aureus
 mvp	mitral valve prolapse
 n v	nausea and vomiting
@@ -172,10 +171,9 @@ osa	obstructive sleep apnea
 pad	peripheral arterial disease
 pafib	paroxysmal atrial fibrillation
 pct	percent
-pe	pulmonary embolism
 pfo	patent foramen ovale
-pid	pelvic inflammatory disease
-pid	prolapsed intervertebral disc
+pid	pelvic inflammatory disease	pelvic,cervical,adnexal,discharge,std,chlamydia,gonorrhea,ceftriaxone
+pid	prolapsed intervertebral disc	disc,lumbar,cervical spine,radiculopathy,sciatica,herniation,l4,l5,s1
 pna	pneumonia
 pmr	polymyalgia rheumatica
 ponv	postoperative nausea and vomiting
@@ -185,8 +183,8 @@ pulm	pulmonary
 pvc	premature ventricular contraction
 pvcs	premature ventricular contractions
 pvd	peripheral vascular disease
-ra	rheumatoid arthritis
-ra	right atrium
+ra	rheumatoid arthritis	rheumatoid,methotrexate,synovitis,stiffness,joints,hands,rf,ccp,hydroxychloroquine,biologic
+ra	right atrium	echo,atrial,tricuspid,rv,ventricle,dilated,enlarged,chamber,cardiac,lv
 rbbb	right bundle branch block
 rle	right lower extremity
 rll	right lower lobe
@@ -229,3 +227,7 @@ vte	venous thromboembolism
 vfib	ventricular fibrillation
 wt	weight
 xr	x ray
+pe	pulmonary embolism	embolus,embolism,filling defect,heparin,anticoagulation,dvt,ctpa,angiogram,clot
+pe	physical exam	lungs,heart,abdomen,heent,extremities,exam,examination,neuro,skin,rrr
+cp	chest pain	substernal,radiating,angina,pressure,exertional,troponin,diaphoretic,chest
+cp	cerebral palsy	spastic,diplegia,quadriplegia,birth,developmental,hemiplegia,wheelchair

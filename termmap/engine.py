@@ -110,7 +110,9 @@ class SystemMapper:
             if not cs:
                 blocks.append(([], np.zeros((0, 0), dtype=np.float32)))
                 continue
-            blocks.append(featurize(entity, vs, ctx, cs, self.term, prior, exact, sub))
+            # an abbreviation resolved by its context is compared under its reading
+            term_text = vs[0] if len(vs) == 1 and vs[0] != clean(entity) else entity
+            blocks.append(featurize(term_text, vs, ctx, cs, self.term, prior, exact, sub))
         return blocks
 
     def _fold_parts(self, train: pd.DataFrame):

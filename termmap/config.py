@@ -24,7 +24,7 @@ class Config:
     k_word: int = 40
     k_alias: int = 20
     max_candidates: int = 60
-    query_batch: int = 256
+    query_batch: int = 64
 
     # reranker
     n_folds: int = 5

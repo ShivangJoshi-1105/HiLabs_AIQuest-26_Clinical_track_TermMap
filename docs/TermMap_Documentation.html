@@ -112,6 +112,10 @@ encoders and cross-encoder under <code>artifacts/</code>, ranker and coding-team
   <li><b>Hybrid retrieval, six sources.</b> Character n-grams catch OCR damage and run-together words (<i>chronickidney disease stag 3</i>);
   word n-grams catch rare exact tokens; dense encoders catch synonyms with no lexical overlap. Each source added measurable accuracy (Table 1).
   Training terms are indexed as aliases of their gold codes so local shorthand is retrievable.</li>
+  <li><b>Context-settled abbreviations.</b> Each reading of an ambiguous abbreviation carries cue words (right atrium:
+  <i>echo, tricuspid, rv</i>; rheumatoid arthritis: <i>methotrexate, synovitis</i>). When the chunk supports exactly one
+  reading, the term is searched and scored under that reading, so a frequent reading cannot outvote the context. On the
+  held-out split this leaves ICD-10-CM at 68.9 and moves the SNOMED CT ranker stage from 49.6 to 49.7.</li>
   <li><b>Learning to rank, not thresholds.</b> Lexical and clinical distance diverge exactly where errors happen (<i>hypertension</i> vs
   <i>pulmonary hypertension</i>). The ranker sees, per candidate: scores, gaps and ranks from every source; fuzzy similarity; token coverage in
   both directions; <b>unexplained description tokens and the share explained by the chunk context</b>; qualifier agreement (laterality, acuity,
