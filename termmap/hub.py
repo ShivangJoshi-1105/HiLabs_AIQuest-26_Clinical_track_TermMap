@@ -32,6 +32,20 @@ def load_dotenv(path: Path = ROOT / ".env") -> None:
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
+def unpack(cfg: Config, source: Path) -> list[str]:
+    """Extract release zip files (termmap_*.zip) from `source` into the artifact directory."""
+    import zipfile
+
+    zips = sorted(Path(source).glob("termmap_*.zip"))
+    if not zips:
+        raise SystemExit(f"no termmap_*.zip files in {source}")
+    for z in zips:
+        with zipfile.ZipFile(z) as fh:
+            fh.extractall(cfg.artifact_dir)
+        log.info("unpacked %s", z.name)
+    return [z.name for z in zips]
+
+
 def fetch(cfg: Config, repo_id: str | None = None, embeddings: bool = True) -> Path:
     load_dotenv()
     repo_id = repo_id or os.environ.get("TERMMAP_ARTIFACTS_REPO")

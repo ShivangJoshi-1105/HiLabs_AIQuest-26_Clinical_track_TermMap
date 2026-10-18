@@ -223,20 +223,20 @@ data/raw/SNOMEDCT_US_codes_and_descriptions.xlsx
 ### Trained artifacts
 
 The trained engine, the fine-tuned cross-encoder and the description embeddings are derived from the challenge
-data, so they are not stored in this repository. They are kept in the **private** Hugging Face Hub repository
-[`explolearner/termmap-artifacts`](https://huggingface.co/explolearner/termmap-artifacts); access is granted to the
-judges on request. With access, put your Hugging Face read token and the repository id in `.env`:
+data, so they are not committed to the source tree. They are attached to this repository's **Releases** page
+(release `artifacts-v1`), which is visible to everyone with access to the repository. No token is needed.
 
-```
-HF_TOKEN=<your Hugging Face token>
-TERMMAP_ARTIFACTS_REPO=explolearner/termmap-artifacts
-```
+| Release file | Size | Needed for |
+|---|---|---|
+| `termmap_artifacts_core.zip` | 465 MB | engine, cross-encoder, dictionary caches, dense hits (required) |
+| `termmap_embeddings_icd10cm.zip` | 476 MB | encoding new terms for ICD-10-CM |
+| `termmap_embeddings_snomed_sapbert.zip` | 959 MB | encoding new terms for SNOMED CT (SapBERT) |
+| `termmap_embeddings_snomed_biolord.zip` | 959 MB | encoding new terms for SNOMED CT (BioLORD) |
 
-and run:
+Download the zip files into one folder (for example `downloads/`) and run:
 
 ```bash
-python -m termmap fetch-artifacts                  # about 2.8 GB, into artifacts/
-python -m termmap fetch-artifacts --no-embeddings  # about 0.5 GB, skips the description embeddings
+python -m termmap unpack-artifacts downloads
 ```
 
 | File in `artifacts/` | Content |
@@ -246,6 +246,9 @@ python -m termmap fetch-artifacts --no-embeddings  # about 0.5 GB, skips the des
 | `terminology_*.parquet` | parsed dictionaries |
 | `dense_hits_*.parquet` | precomputed dense hits for the labelled terms |
 | `dense_*.emb.npy`, `dense_*.codes.npy` | SapBERT and BioLORD description embeddings, used to encode new terms |
+
+Team members can pull the same files from the team's private Hugging Face repository with
+`python -m termmap fetch-artifacts` (needs `HF_TOKEN` and `TERMMAP_ARTIFACTS_REPO` in `.env`).
 
 Every artifact can also be rebuilt from the challenge files: `python -m termmap train` rebuilds the engine, and the
 notebooks in [GPU steps](#gpu-steps) rebuild the embeddings and the cross-encoder. Without the cross-encoder and
@@ -258,8 +261,8 @@ the environment and are never written to disk by the code.
 
 | Variable | Purpose |
 |---|---|
-| `HF_TOKEN` | Hugging Face token: read access to the artifacts repository, and model downloads |
-| `TERMMAP_ARTIFACTS_REPO` | Hub repository id holding the trained artifacts |
+| `HF_TOKEN` | optional Hugging Face token for model downloads and the team artifacts repository |
+| `TERMMAP_ARTIFACTS_REPO` | optional, team Hugging Face repository with the trained artifacts |
 | `TERMMAP_FORCE_CPU` | set to `1` to keep encoders on CPU when a GPU is present |
 | `TERMMAP_CPU_THREADS` | threads used by encoders on CPU (default 2) |
 
@@ -267,7 +270,7 @@ the environment and are never written to disk by the code.
 
 ## Running the engine
 
-**Reproduce the submitted predictions (single command, after `fetch-artifacts`):**
+**Reproduce the submitted predictions (single command, after `unpack-artifacts`):**
 
 ```bash
 python -m termmap predict --input data/raw/<evaluation_file>.csv --output outputs/predictions.csv

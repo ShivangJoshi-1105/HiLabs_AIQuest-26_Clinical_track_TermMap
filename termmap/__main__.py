@@ -132,6 +132,12 @@ def cmd_fetch_artifacts(cfg: Config, args) -> None:
     fetch(cfg, args.repo, embeddings=not args.no_embeddings)
 
 
+def cmd_unpack_artifacts(cfg: Config, args) -> None:
+    from .hub import unpack
+
+    unpack(cfg, Path(args.source))
+
+
 def cmd_embed(cfg: Config, args) -> None:
     from .dense import build
 
@@ -169,6 +175,8 @@ def main(argv=None) -> None:
     pf = sub.add_parser("fetch-artifacts")
     pf.add_argument("--repo", default=None, help="Hub repository id (default: TERMMAP_ARTIFACTS_REPO)")
     pf.add_argument("--no-embeddings", action="store_true", help="skip the description embeddings")
+    pu = sub.add_parser("unpack-artifacts")
+    pu.add_argument("source", nargs="?", default=".", help="folder holding the downloaded termmap_*.zip files")
     pl = sub.add_parser("export-stage2")
     pl.add_argument("--input", required=True)
     pl.add_argument("--name", default="", help="suffix for the request file names")
@@ -183,7 +191,8 @@ def main(argv=None) -> None:
     cfg = Config.load(args.config)
     {"train": cmd_train, "predict": cmd_predict, "evaluate": cmd_evaluate,
      "map": cmd_map, "embed": cmd_embed, "export-queries": cmd_export_queries,
-     "export-stage2": cmd_export_stage2, "fetch-artifacts": cmd_fetch_artifacts}[args.cmd](cfg, args)
+     "export-stage2": cmd_export_stage2, "fetch-artifacts": cmd_fetch_artifacts,
+     "unpack-artifacts": cmd_unpack_artifacts}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":
