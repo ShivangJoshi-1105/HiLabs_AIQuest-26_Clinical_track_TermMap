@@ -1,0 +1,22 @@
+# Paths are relative to the repository root.
+raw_dir: data/raw
+artifact_dir: artifacts
+output_dir: outputs
+
+k_char: 40
+k_word: 40
+k_alias: 20
+k_dense: 40
+max_candidates: 60
+n_folds: 5
+seed: 13
+
+use_dense: true
+use_stage2: true
+stage2_top_n: 10
+stage2_weights:
+  ICD10CM: {ce: 0.5}
+  SNOMEDCT_US: {ce: 0.5}
+coupling_weights:
+  ICD10CM: 0.0
+  SNOMEDCT_US: 0.0

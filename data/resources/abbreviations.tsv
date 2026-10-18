@@ -1,0 +1,231 @@
+# abbreviation	expansion
+# One row per reading. Ambiguous abbreviations have several rows; the first row is the default reading.
+aaa	abdominal aortic aneurysm
+abd	abdominal
+abg	arterial blood gas
+abnl	abnormal
+abnrm	abnormal
+acs	acute coronary syndrome
+adhd	attention deficit hyperactivity disorder
+adl	activities of daily living
+adls	activities of daily living
+afib	atrial fibrillation
+af	atrial fibrillation
+afl	atrial flutter
+aflutter	atrial flutter
+aicd	automatic implantable cardioverter defibrillator
+aki	acute kidney injury
+alb	albumin
+als	amyotrophic lateral sclerosis
+amb	ambulation
+ams	altered mental status
+aml	acute myeloid leukemia
+all	acute lymphoblastic leukemia
+anc	absolute neutrophil count
+aom	acute otitis media
+aov	aortic valve
+ards	acute respiratory distress syndrome
+arf	acute renal failure
+arom	active range of motion
+as	aortic stenosis
+asa	aspirin
+asc	ascending
+ascvd	atherosclerotic cardiovascular disease
+asd	atrial septal defect
+ashd	arteriosclerotic heart disease
+avm	arteriovenous malformation
+awv	annual wellness visit
+bilat	bilateral
+bka	below knee amputation
+bmi	body mass index
+bmp	basic metabolic panel
+bph	benign prostatic hyperplasia
+bpd	bipolar disorder
+bpd	bronchopulmonary dysplasia
+brbpr	bright red blood per rectum
+brpr	bright red blood per rectum
+bue	bilateral upper extremities
+ble	bilateral lower extremities
+bx	biopsy
+ca	cancer
+cabg	coronary artery bypass graft
+cad	coronary artery disease
+cath	catheterization
+cbc	complete blood count
+ccb	calcium channel blocker
+chf	congestive heart failure
+ckd	chronic kidney disease
+ckd2	chronic kidney disease stage 2
+ckd3	chronic kidney disease stage 3
+ckd4	chronic kidney disease stage 4
+cll	chronic lymphocytic leukemia
+cml	chronic myeloid leukemia
+cmp	comprehensive metabolic panel
+cmv	cytomegalovirus
+cns	central nervous system
+copd	chronic obstructive pulmonary disease
+cp	chest pain
+cpap	continuous positive airway pressure
+crf	chronic renal failure
+cva	cerebrovascular accident
+cvd	cardiovascular disease
+cxr	chest x ray
+dcis	ductal carcinoma in situ
+ddd	degenerative disc disease
+dec	decreased
+decr	decreased
+dfu	diabetic foot ulcer
+djd	degenerative joint disease
+dka	diabetic ketoacidosis
+dlbcl	diffuse large b cell lymphoma
+dm	diabetes mellitus
+dm1	type 1 diabetes mellitus
+dm2	type 2 diabetes mellitus
+dmii	type 2 diabetes mellitus
+dmt2	type 2 diabetes mellitus
+dme	durable medical equipment
+dme	diabetic macular edema
+dnr	do not resuscitate
+dni	do not intubate
+doe	dyspnea on exertion
+dvt	deep vein thrombosis
+dx	diagnosis
+ecg	electrocardiogram
+ekg	electrocardiogram
+echo	echocardiogram
+ed	erectile dysfunction
+ed	emergency department
+egd	esophagogastroduodenoscopy
+esrd	end stage renal disease
+etoh	alcohol
+eval	evaluation
+ext	extremity
+fhx	family history
+fx	fracture
+fxs	fractures
+gad	generalized anxiety disorder
+gbs	guillain barre syndrome
+gdm	gestational diabetes mellitus
+gerd	gastroesophageal reflux disease
+gi	gastrointestinal
+gib	gastrointestinal bleeding
+gu	genitourinary
+hcc	hepatocellular carcinoma
+hcv	hepatitis c
+hbv	hepatitis b
+hf	heart failure
+hfref	heart failure with reduced ejection fraction
+hfpef	heart failure with preserved ejection fraction
+hgb	hemoglobin
+hh	hiatal hernia
+hiv	human immunodeficiency virus
+hld	hyperlipidemia
+hl	hyperlipidemia
+hlp	hyperlipidemia
+hpv	human papillomavirus
+hsv	herpes simplex virus
+htn	hypertension
+hx	history
+hypox	hypoxia
+ibd	inflammatory bowel disease
+ibs	irritable bowel syndrome
+icd	implantable cardioverter defibrillator
+ich	intracranial hemorrhage
+icm	ischemic cardiomyopathy
+iddm	insulin dependent diabetes mellitus
+infxn	infection
+irreg	irregular
+itp	immune thrombocytopenic purpura
+ivc	inferior vena cava
+jvd	jugular venous distension
+lad	left anterior descending artery
+lbbb	left bundle branch block
+lbp	low back pain
+le	lower extremity
+lle	left lower extremity
+lll	left lower lobe
+lue	left upper extremity
+lul	left upper lobe
+lvh	left ventricular hypertrophy
+lv	left ventricular
+mdd	major depressive disorder
+mgus	monoclonal gammopathy of undetermined significance
+mi	myocardial infarction
+mr	mitral regurgitation
+ms	multiple sclerosis
+ms	mitral stenosis
+ms	mental status
+mrsa	methicillin resistant staphylococcus aureus
+mvp	mitral valve prolapse
+n v	nausea and vomiting
+nafld	nonalcoholic fatty liver disease
+nash	nonalcoholic steatohepatitis
+nidd	non insulin dependent diabetes
+niddm	non insulin dependent diabetes mellitus
+nsclc	non small cell lung cancer
+nstemi	non st elevation myocardial infarction
+nsvt	non sustained ventricular tachycardia
+oa	osteoarthritis
+ob	obstetric
+oob	out of bed
+osa	obstructive sleep apnea
+pad	peripheral arterial disease
+pafib	paroxysmal atrial fibrillation
+pct	percent
+pe	pulmonary embolism
+pfo	patent foramen ovale
+pid	pelvic inflammatory disease
+pid	prolapsed intervertebral disc
+pna	pneumonia
+pmr	polymyalgia rheumatica
+ponv	postoperative nausea and vomiting
+ptsd	post traumatic stress disorder
+pud	peptic ulcer disease
+pulm	pulmonary
+pvc	premature ventricular contraction
+pvcs	premature ventricular contractions
+pvd	peripheral vascular disease
+ra	rheumatoid arthritis
+ra	right atrium
+rbbb	right bundle branch block
+rle	right lower extremity
+rll	right lower lobe
+rlq	right lower quadrant
+ruq	right upper quadrant
+rue	right upper extremity
+rul	right upper lobe
+resp	respiratory
+rom	range of motion
+rsv	respiratory syncytial virus
+s p	status post
+sah	subarachnoid hemorrhage
+sbo	small bowel obstruction
+sle	systemic lupus erythematosus
+sob	shortness of breath
+stemi	st elevation myocardial infarction
+svt	supraventricular tachycardia
+sz	seizure
+t1dm	type 1 diabetes mellitus
+t2dm	type 2 diabetes mellitus
+tach	tachycardia
+tb	tuberculosis
+tbi	traumatic brain injury
+tia	transient ischemic attack
+tka	total knee arthroplasty
+tha	total hip arthroplasty
+tkr	total knee replacement
+thr	total hip replacement
+trop	troponin
+trops	troponin
+tsh	thyroid stimulating hormone
+ua	urinalysis
+ue	upper extremity
+uri	upper respiratory infection
+uti	urinary tract infection
+vit	vitamin
+vtach	ventricular tachycardia
+vt	ventricular tachycardia
+vte	venous thromboembolism
+vfib	ventricular fibrillation
+wt	weight
+xr	x ray

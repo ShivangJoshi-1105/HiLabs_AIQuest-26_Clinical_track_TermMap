@@ -1,0 +1,11 @@
+joblib==1.6.0
+lightgbm==4.7.0
+numpy==2.5.4
+openpyxl==3.1.5
+pandas==3.0.6
+pyarrow==26.0.0
+PyYAML==6.0.3
+RapidFuzz==3.14.6
+scikit-learn==1.9.1
+scipy==1.18.1
+streamlit==1.66.0

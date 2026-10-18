@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TermMap: Documentation</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm 14mm 14mm; }
+  :root { --ink:#1b1f24; --muted:#5a6370; --rule:#d5dae1; --accent:#1f5f8b; --soft:#eef3f8; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 9.3pt; line-height: 1.38; margin: 0; background:#fff; }
+  h1 { font-size: 19pt; margin: 0 0 2px; letter-spacing: -0.2px; }
+  h2 { font-size: 11.5pt; color: var(--accent); margin: 12px 0 4px; padding-bottom: 2px; border-bottom: 1px solid var(--rule); }
+  h3 { font-size: 9.8pt; margin: 8px 0 2px; }
+  p { margin: 3px 0 5px; }
+  ul { margin: 2px 0 5px 16px; padding: 0; }
+  li { margin: 1px 0; }
+  .sub { color: var(--muted); font-size: 9.5pt; margin-bottom: 6px; }
+  .kpis { display: flex; gap: 8px; margin: 8px 0 4px; }
+  .kpi { flex: 1; background: var(--soft); border-radius: 6px; padding: 6px 8px; }
+  .kpi b { display: block; font-size: 15pt; color: var(--accent); }
+  .kpi span { color: var(--muted); font-size: 8.3pt; }
+  table { border-collapse: collapse; width: 100%; margin: 4px 0 6px; font-size: 8.5pt; }
+  th, td { border-bottom: 1px solid var(--rule); padding: 2.5px 5px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  code { font-family: Consolas, monospace; font-size: 8.4pt; background: #f3f5f7; padding: 0 2px; border-radius: 2px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .note { color: var(--muted); font-size: 8.3pt; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>TermMap</h1>
+<div class="sub">A clinical term mapping engine for ICD-10-CM and SNOMED CT &nbsp;|&nbsp; HiLabs TermMap Challenge &nbsp;|&nbsp; Repository: github.com/brindoxx/HiLabs-TermMap &nbsp;|&nbsp; Demo video: </div>
+
+<div class="kpis">
+  <div class="kpi"><b>68.9%</b><span>ICD-10-CM exact match (held-out)</span></div>
+  <div class="kpi"><b>53.8%</b><span>SNOMED CT exact match (held-out), headline</span></div>
+  <div class="kpi"><b>45.1% / 42.2%</b><span>long tail: gold code unseen in training (ICD / SNOMED)</span></div>
+  <div class="kpi"><b>88.9%</b><span>ICD accuracy when both systems' predictions agree (36% of terms)</span></div>
+</div>
+<p class="note">Held-out protocol: 80/20 random split of the 9,646 labelled rows (seed 13); 472 ICD-10-CM and 1,529 SNOMED CT test terms that no
+retrieval index, prior, reranker or fine-tuned model saw. Blend weights were chosen with cross-fitting (selected on one half of the test terms,
+scored on the other); the cross-fitted and reported numbers coincide.</p>
+
+<h2>1. Approach</h2>
+<p>We treated the task as entity linking into two very large label spaces (98k ICD-10-CM codes, 382k SNOMED CT concepts), where
+nearly every input is new: in a random split only about 1% of test terms also appear in training, while 76% of test ICD-10-CM codes and
+53% of test SNOMED CT codes do. Memorising terms is therefore useless, but the coding team's habits (which codes they choose, and how
+they resolve ambiguity) are learnable. That observation shaped the design: a high-recall retrieval stage over the full dictionaries, followed
+by learned rerankers trained on the coding team's own decisions. Each system is predicted independently with its own retrieval, priors and
+ranking. Neither is derived from the other.</p>
+<p>Scope: all entity categories in the labelled data are handled (diagnoses, but also SNOMED CT procedures, labs, encounters and devices),
+since the evaluation file's composition is not known. The <code>subconcept</code> column is used when present, and a second ranker variant
+without it is trained so the engine does not depend on it.</p>
+
+<h2>2. Architecture</h2>
+<svg viewBox="0 0 760 228" width="100%" role="img" aria-label="TermMap pipeline">
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a6370"/></marker></defs>
+  <g font-size="10">
+    <rect x="4" y="88" width="104" height="52" rx="6" fill="#eef3f8" stroke="#9fb4c8"/>
+    <text x="56" y="108" text-anchor="middle" font-weight="600">term + context</text>
+    <text x="56" y="122" text-anchor="middle" fill="#5a6370">normalise, expand</text>
+    <text x="56" y="134" text-anchor="middle" fill="#5a6370">abbreviations</text>
+
+    <g fill="#fff" stroke="#9fb4c8">
+      <rect x="140" y="6" width="150" height="30" rx="5"/><rect x="140" y="42" width="150" height="30" rx="5"/>
+      <rect x="140" y="78" width="150" height="30" rx="5"/><rect x="140" y="114" width="150" height="30" rx="5"/>
+      <rect x="140" y="150" width="150" height="30" rx="5"/><rect x="140" y="186" width="150" height="30" rx="5"/>
+    </g>
+    <text x="215" y="25" text-anchor="middle">char 3-4 gram TF-IDF</text>
+    <text x="215" y="61" text-anchor="middle">word 1-2 gram TF-IDF</text>
+    <text x="215" y="97" text-anchor="middle">training-term aliases</text>
+    <text x="215" y="133" text-anchor="middle">SapBERT dense</text>
+    <text x="215" y="169" text-anchor="middle">BioLORD-2023 dense</text>
+    <text x="215" y="205" text-anchor="middle">ICD default-child expansion</text>
+
+    <rect x="322" y="78" width="120" height="72" rx="6" fill="#eef3f8" stroke="#9fb4c8"/>
+    <text x="382" y="100" text-anchor="middle" font-weight="600">candidates</text>
+    <text x="382" y="114" text-anchor="middle" fill="#5a6370">up to 60 codes</text>
+    <text x="382" y="128" text-anchor="middle" fill="#5a6370">65 features each</text>
+
+    <rect x="474" y="78" width="122" height="72" rx="6" fill="#fff" stroke="#1f5f8b" stroke-width="1.4"/>
+    <text x="535" y="100" text-anchor="middle" font-weight="600">LambdaRank</text>
+    <text x="535" y="114" text-anchor="middle" fill="#5a6370">LightGBM, out-of-fold</text>
+    <text x="535" y="128" text-anchor="middle" fill="#5a6370">shared by both systems</text>
+
+    <rect x="628" y="60" width="128" height="50" rx="6" fill="#fff" stroke="#1f5f8b" stroke-width="1.4"/>
+    <text x="692" y="80" text-anchor="middle" font-weight="600">cross-encoder</text>
+    <text x="692" y="94" text-anchor="middle" fill="#5a6370">MedCPT, fine-tuned, top 10</text>
+
+    <rect x="628" y="124" width="128" height="50" rx="6" fill="#eef3f8" stroke="#9fb4c8"/>
+    <text x="692" y="144" text-anchor="middle" font-weight="600">code + confidence</text>
+    <text x="692" y="158" text-anchor="middle" fill="#5a6370">+ cross-system check</text>
+  </g>
+  <g stroke="#5a6370" fill="none" marker-end="url(#a)">
+    <path d="M108,114 L138,21"/><path d="M108,114 L138,57"/><path d="M108,114 L138,93"/>
+    <path d="M108,114 L138,129"/><path d="M108,114 L138,165"/><path d="M108,114 L138,201"/>
+    <path d="M290,21 L320,100"/><path d="M290,57 L320,106"/><path d="M290,93 L320,112"/>
+    <path d="M290,129 L320,118"/><path d="M290,165 L320,124"/><path d="M290,201 L320,130"/>
+    <path d="M442,114 L472,114"/><path d="M596,104 L626,88"/><path d="M692,110 L692,122"/>
+  </g>
+</svg>
+<p class="note">Lexical retrieval and ranking run on CPU. Dense description embeddings and the cross-encoder fine-tune were computed on a T4 GPU
+(<code>notebooks/</code>); at prediction time the engine reads precomputed hits or encodes new queries on CPU. Model locations:
+encoders and cross-encoder under <code>artifacts/</code>, ranker and coding-team crosswalk in <code>artifacts/engine.joblib</code>.</p>
+
+<h2>3. Design decisions</h2>
+<ul>
+  <li><b>Hybrid retrieval, six sources.</b> Character n-grams catch OCR damage and run-together words (<i>chronickidney disease stag 3</i>);
+  word n-grams catch rare exact tokens; dense encoders catch synonyms with no lexical overlap. Each source added measurable accuracy (Table 1).
+  Training terms are indexed as aliases of their gold codes so local shorthand is retrievable.</li>
+  <li><b>Learning to rank, not thresholds.</b> Lexical and clinical distance diverge exactly where errors happen (<i>hypertension</i> vs
+  <i>pulmonary hypertension</i>). The ranker sees, per candidate: scores, gaps and ranks from every source; fuzzy similarity; token coverage in
+  both directions; <b>unexplained description tokens and the share explained by the chunk context</b>; qualifier agreement (laterality, acuity,
+  history-of, negation, type, stage, encounter); coding-team priors for the code and its ICD block or SNOMED semantic tag, also conditioned on
+  subconcept; ICD leaf, depth and unspecified flags. LambdaRank optimises the order within each term's candidate group.</li>
+  <li><b>Specificity policy.</b> Specificity is an explicit, learned choice: a retrieved non-billable ICD category contributes its
+  <i>unspecified</i> or <i>without complication</i> children, and the unexplained-token features penalise detail the text does not support unless
+  the context supplies it. 81.1% of ICD-10-CM predictions land in the correct 3-character block; a third of remaining ICD errors are
+  right-category, wrong-specificity.</li>
+  <li><b>Leakage control.</b> Aliases and priors come from training data, so the ranker is trained on out-of-fold candidates (5 folds), and the
+  cross-encoder is fine-tuned only on those out-of-fold candidate groups. Live cross-encoder scoring is disabled during evaluation.</li>
+  <li><b>Fine-tuned cross-encoder as the second stage.</b> MedCPT-Cross-Encoder, fine-tuned on 7,643 groups (gold description plus 15 hard
+  negatives from our own candidate lists, listwise loss), re-scores the top 10 with the term, subconcept and context window. It is weaker than
+  the ranker alone (59.1% / 48.7%) but the two make different mistakes; the log-linear blend gains 3.9 and 4.2 points.</li>
+</ul>
+
+<table>
+  <tr><th>Table 1. Stage-by-stage held-out accuracy</th><th class="n">ICD-10-CM</th><th class="n">SNOMED CT</th></tr>
+  <tr><td>Lexical retrieval + aliases, gradient boosting per system</td><td class="n">54.0</td><td class="n">41.7</td></tr>
+  <tr><td>+ shared ranker, subconcept priors, LambdaRank objective</td><td class="n">54.5</td><td class="n">43.0</td></tr>
+  <tr><td>+ SapBERT dense retrieval</td><td class="n">61.7</td><td class="n">49.1</td></tr>
+  <tr><td>+ BioLORD-2023 dense retrieval</td><td class="n">65.0</td><td class="n">49.6</td></tr>
+  <tr><td><b>+ fine-tuned MedCPT cross-encoder (submitted configuration)</b></td><td class="n"><b>68.9</b></td><td class="n"><b>53.8</b></td></tr>
+  <tr><td>Zero-shot Qwen2.5-7B adjudication instead, measured at the SapBERT stage (cross-fitted)</td><td class="n">58.7</td><td class="n">53.4</td></tr>
+</table>
+
+<div class="two">
+<div>
+<table>
+  <tr><th>Table 2. Diagnostics (submitted configuration)</th><th class="n">ICD</th><th class="n">SNOMED</th></tr>
+  <tr><td>Gold in candidate set / in top 10</td><td class="n">90.3 / 87.1</td><td class="n">86.7 / 78.6</td></tr>
+  <tr><td>Accuracy, gold code seen in training</td><td class="n">76.3</td><td class="n">64.1</td></tr>
+  <tr><td>Accuracy, gold code unseen (long tail)</td><td class="n">45.1</td><td class="n">42.2</td></tr>
+  <tr><td>Share of test terms with unseen gold code</td><td class="n">23.9</td><td class="n">46.8</td></tr>
+  <tr><td>ICD 3-character block accuracy</td><td class="n">81.1</td><td class="n"></td></tr>
+  <tr><td>Without the subconcept column (ranker stage)</td><td class="n">64.8</td><td class="n">49.1</td></tr>
+</table>
+</div>
+<div>
+<table>
+  <tr><th>Table 3. Cross-system agreement as confidence</th><th class="n">share</th><th class="n">ICD acc.</th></tr>
+  <tr><td>Predicted pair used by the coding team</td><td class="n">36.2</td><td class="n">88.9</td></tr>
+  <tr><td>Codes paired by the team, but differently</td><td class="n">9.3</td><td class="n">31.8</td></tr>
+  <tr><td>No pairing evidence</td><td class="n">54.5</td><td class="n">61.9</td></tr>
+</table>
+<p class="note">For SNOMED CT targets: 73.5% accuracy on agreeing pairs (12.1% of terms) against 51.8% when they disagree.</p>
+</div>
+</div>
+
+<h2>4. Error analysis</h2>
+<p>Every held-out error was assigned to the first matching failure mode (<code>scripts/error_analysis.py</code>; the abbreviation, noise and
+multi-concept categories are heuristic).</p>
+<table>
+  <tr><th>Failure mode</th><th class="n">ICD errors</th><th class="n">SNOMED errors</th><th>Typical example (term: gold vs predicted)</th></tr>
+  <tr><td>Gold never retrieved</td><td class="n">46 (31%)</td><td class="n">203 (29%)</td><td><i>activity as tolerated</i>: Ambulation without limitation vs Activity tolerance</td></tr>
+  <tr><td>Right ICD block, wrong specificity</td><td class="n">47 (32%)</td><td class="n"></td><td><i>acute on chronic respiratory failure</i>: J96.20 vs J96.00; <i>adenopathy</i>: R59.9 vs R59.0</td></tr>
+  <tr><td>Right words, wrong SNOMED hierarchy</td><td class="n"></td><td class="n">143 (20%)</td><td><i>accu checks</i>: Capillary blood glucose measurement (procedure) vs Blood glucose monitoring (regime/therapy)</td></tr>
+  <tr><td>Abbreviation / shorthand</td><td class="n">11 (7%)</td><td class="n">46 (7%)</td><td><i>dm1</i>: E10.9 vs E11.9; <i>100% af</i>: Persistent AF vs Atrial fibrillation</td></tr>
+  <tr><td>OCR / typing noise</td><td class="n">15 (10%)</td><td class="n">38 (5%)</td><td><i>a r l5 and s1 tfesi</i>: lumbar transforaminal injection vs spine-level parent</td></tr>
+  <tr><td>Several ideas in one term</td><td class="n">6 (4%)</td><td class="n">38 (5%)</td><td><i>impaired sensation in feet 2/2 neuropathy</i>: R20.2 vs E11.40</td></tr>
+  <tr><td>Local convention far from wording</td><td class="n">11 (7%)</td><td class="n">93 (13%)</td><td><i>bacterial infection</i>: B99.9 vs A49.9; <i>delayed gastric emptying</i>: K30 vs K31.84</td></tr>
+  <tr><td>Other close near-miss</td><td class="n">11 (7%)</td><td class="n">145 (21%)</td><td><i>acute ischemia</i>: Acute myocardial ischemia vs Ischemia</td></tr>
+</table>
+<ul>
+  <li><b>Retrieval is the ceiling for a third of errors.</b> These are mostly paraphrases of functional status, therapy and planning concepts in
+  SNOMED CT, where neither spelling nor a general biomedical encoder reaches the coding team's chosen concept.</li>
+  <li><b>Specificity errors are symmetric.</b> We see both over-coding (R59.0 localized for <i>adenopathy</i>) and under-coding
+  (I50.9 for <i>advanced heart failure</i>, gold I50.84 end stage), so the policy is not biased one way. The fix needs better qualifier
+  reading, not a global bias shift.</li>
+  <li><b>SNOMED hierarchy choice is convention.</b> The same words exist as a finding, an observable and a procedure; which one the team
+  picks depends on the entity category and on habit. Subconcept priors and the cross-encoder each recover part of this.</li>
+  <li><b>Label and version drift.</b> 5.3% of ICD-10-CM gold descriptions in the training file (123 rows) are not descriptions in the supplied
+  dictionary (e.g. <i>Nonrheumatic aortic valve insufficiency</i> for I35.1), pointing to a different release behind part of the labels.</li>
+  <li><b>Practical ceiling.</b> Some gold labels cannot be derived from the term and its context alone (<i>bacterial endocarditis</i> coded
+  A49.01). Inter-annotator agreement on the evaluation set would quantify how much of the remaining gap is reachable.</li>
+</ul>
+
+<h2>5. Innovations</h2>
+<ul>
+  <li><b>Coding-team crosswalk as a confidence signal.</b> 2,124 labelled terms carry both an ICD-10-CM and a SNOMED CT gold code. From them we
+  learn the team's own pairings and check whether the two independent predictions form a known pair. Agreeing pairs (36% of terms) are 88.9%
+  accurate for ICD-10-CM; disagreeing pairs 31.8%. Used as a soft prior it did not hold up under cross-fitting, so it is used for confidence
+  and review routing, not to change predictions.</li>
+  <li><b>One ranker for two terminologies.</b> A single LambdaRank model with a system indicator is shared by both systems, so the smaller
+  ICD-10-CM set benefits from the SNOMED CT examples.</li>
+  <li><b>Hard negatives from our own retriever.</b> The cross-encoder is fine-tuned on exactly the confusions our pipeline makes, built
+  out-of-fold so no training group contains its own term as an alias.</li>
+  <li><b>Calibrated output.</b> Confidence plus the cross-system check support abstention: abstaining on the 5% of terms with the lowest
+  ranker confidence raises accuracy by 3.0 points (ICD-10-CM) and 2.1 points (SNOMED CT).</li>
+</ul>
+
+<h2>6. Tried and abandoned; challenges and learnings</h2>
+<ul>
+  <li><b>Zero-shot LLM adjudication</b> (Qwen2.5-7B-Instruct, 4-bit, letter-probability scoring with retrieved in-context examples): +4.4 points
+  on SNOMED CT but 2 to 3 points worse on ICD-10-CM, where it overrides the team's conventions with textbook choices. The fine-tuned
+  cross-encoder helps both systems at a fraction of the cost, so it replaced the LLM.</li>
+  <li><b>LoRA fine-tuning of an LLM selector</b> (Qwen2.5-3B, QLoRA on out-of-fold prompts) is implemented in
+  <code>notebooks/lora_selector.ipynb</code>; GPU quota ran out before it could be evaluated.</li>
+  <li><b>Gold display texts as extra synonyms</b> lowered ICD-10-CM accuracy by one point and were removed.</li>
+  <li><b>Swapping the reranker learner</b> (histogram GBM, LightGBM binary, LambdaRank) changed accuracy by about one point; every large gain
+  came from a new signal (dense retrieval, the cross-encoder), not from the learner.</li>
+  <li><b>Constraints.</b> The data cannot leave our environment, so every model is open-weight and self-hosted; no hosted LLM API was used.</li>
+</ul>
+
+<h2>7. Next steps for the remaining gap</h2>
+<ul>
+  <li>Raise candidate recall, the hard ceiling: fine-tune SapBERT contrastively on the team's term-to-code pairs (one model per fold), and add an
+  LLM rewrite of noisy or bundled terms before retrieval.</li>
+  <li>Apply LLM adjudication only to low-confidence or cross-system-disagreeing terms, which bounds cost and targets the 32%-accuracy group.</li>
+  <li>Use the official SNOMED CT to ICD-10-CM map and the SNOMED IS-A hierarchy (UMLS licence) for hierarchical features and partial credit.</li>
+  <li>Abbreviations with numerals and qualifiers (<i>dm1</i>, <i>100% af</i>) need a context-aware expansion model rather than a lookup table.</li>
+</ul>
+
+<h2>8. Reproducibility, cost and external resources</h2>
+<p><code>python -m termmap predict --input &lt;evaluation file&gt; --output outputs/predictions.csv</code> reproduces the predictions end to end.
+Every split and model uses seed 13, LightGBM runs in deterministic mode, dense search and cross-encoder scoring are deterministic, and no
+sampling is used anywhere. On a 4-core laptop CPU (2 threads), the lexical pipeline and ranker map a term to both systems in about 28 ms after a
+one-minute index build. Encoding new queries and cross-encoder scoring add CPU cost per term; a GPU removes most of it.</p>
+<table>
+  <tr><th>Resource</th><th>Use</th><th>Licence</th></tr>
+  <tr><td>ICD-10-CM and SNOMED CT US descriptions (supplied files; SNOMED export dated 24 Sep 2026)</td><td>answer space, retrieval</td><td>CDC/NCHS public domain; SNOMED CT affiliate licence</td></tr>
+  <tr><td><code>cambridgeltl/SapBERT-from-PubMedBERT-fulltext</code></td><td>dense retrieval</td><td>Apache 2.0</td></tr>
+  <tr><td><code>FremyCompany/BioLORD-2023</code></td><td>dense retrieval</td><td>see model card</td></tr>
+  <tr><td><code>ncbi/MedCPT-Cross-Encoder</code></td><td>cross-encoder, fine-tuned</td><td>see model card</td></tr>
+  <tr><td><code>Qwen/Qwen2.5-7B-Instruct</code>, <code>Qwen/Qwen2.5-3B-Instruct</code></td><td>LLM experiments</td><td>Apache 2.0 / Qwen licence</td></tr>
+  <tr><td>LightGBM, scikit-learn, RapidFuzz, pandas, PyTorch, Transformers, PEFT</td><td>modelling</td><td>MIT / BSD / Apache 2.0</td></tr>
+</table>
+<p class="note">No official crosswalk or UMLS release was used. The coding-team crosswalk is derived from the supplied labelled data only.</p>
+
+</body>
+</html>

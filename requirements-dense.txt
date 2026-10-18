@@ -1,0 +1,4 @@
+# Optional: dense retrieval and cross-encoder scoring on the local machine
+-r requirements.txt
+sentence-transformers>=3.0
+torch>=2.3
