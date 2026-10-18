@@ -223,8 +223,16 @@ data/raw/SNOMEDCT_US_codes_and_descriptions.xlsx
 ### Trained artifacts
 
 The trained engine, the fine-tuned cross-encoder and the description embeddings are derived from the challenge
-data, so they are not stored in this repository. They are kept in a **private** Hugging Face Hub repository.
-With read access to it, set `HF_TOKEN` and `TERMMAP_ARTIFACTS_REPO` in `.env` (see `.env.example`) and run:
+data, so they are not stored in this repository. They are kept in the **private** Hugging Face Hub repository
+[`explolearner/termmap-artifacts`](https://huggingface.co/explolearner/termmap-artifacts); access is granted to the
+judges on request. With access, put your Hugging Face read token and the repository id in `.env`:
+
+```
+HF_TOKEN=<your Hugging Face token>
+TERMMAP_ARTIFACTS_REPO=explolearner/termmap-artifacts
+```
+
+and run:
 
 ```bash
 python -m termmap fetch-artifacts                  # about 2.8 GB, into artifacts/
