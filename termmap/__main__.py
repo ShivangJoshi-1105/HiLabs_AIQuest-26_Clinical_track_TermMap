@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -28,7 +29,23 @@ def _engine_path(cfg: Config) -> Path:
     return Path(cfg.artifact_dir) / "engine.joblib"
 
 
+def _ensure_weights(cfg: Config) -> None:
+    """Download the public model weights on first use, when they are not in artifacts/."""
+    have_ce = (Path(cfg.artifact_dir) / "ce_model" / "config.json").exists()
+    have_emb = any(Path(cfg.artifact_dir).glob("dense_*.emb.npy"))
+    if (have_ce and have_emb) or os.environ.get("TERMMAP_NO_DOWNLOAD", "0") == "1":
+        return
+    from .hub import fetch
+
+    logging.info("model weights not found in %s, downloading them (about 2.8 GB, once)", cfg.artifact_dir)
+    try:
+        fetch(cfg)
+    except Exception as exc:  # network or Hub problems must not stop the run
+        logging.warning("could not download weights (%s); continuing with lexical retrieval and the ranker", exc)
+
+
 def _load_or_train(cfg: Config) -> TermMapEngine:
+    _ensure_weights(cfg)
     path = _engine_path(cfg)
     if path.exists():
         return TermMapEngine.load(cfg, path)
@@ -59,7 +76,7 @@ def cmd_predict(cfg: Config, args) -> None:
     t = time.time()
     out = engine.predict(df)
     elapsed = time.time() - t
-    cols = [c for c in ("chunk_id", "clinical_entity", "entity", "coding_system") if c in out.columns]
+    cols = [c for c in ("chunk_id", "clinical_entity", "entity") if c in out.columns]
     if "clinical_entity" not in out.columns:
         out = out.rename(columns={"entity": "clinical_entity"})
         cols = ["clinical_entity" if c == "entity" else c for c in cols]

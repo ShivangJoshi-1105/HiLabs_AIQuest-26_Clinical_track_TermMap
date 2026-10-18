@@ -8,13 +8,13 @@ TermMap returns one ICD-10-CM code and one SNOMED CT concept id, each with a con
 predicted independently. Neither is derived from the other through a crosswalk.
 
 ```
-$ python -m termmap map "htn"
-ICD10CM      I10          0.955  Essential (primary) hypertension
-SNOMEDCT_US  38341003     0.902  High blood pressure
+$ python -m termmap map "htn" --context "bp 152/94 on lisinopril"
+ICD10CM      I10          0.998  Essential (primary) hypertension
+SNOMEDCT_US  38341003     0.989  High blood pressure
 
 $ python -m termmap map "chronickidney disease stag 3"
-ICD10CM      N18.30       0.328  Chronic kidney disease, stage 3 unspecified
-SNOMEDCT_US  433144002    0.279  Chronic kidney disease stage 3
+ICD10CM      N18.30       0.684  Chronic kidney disease, stage 3 unspecified
+SNOMEDCT_US  433144002    0.439  Chronic kidney disease stage 3
 ```
 
 | Held-out exact match | ICD-10-CM | SNOMED CT |
@@ -26,8 +26,46 @@ Documentation: [`docs/TermMap_Documentation.pdf`](docs/TermMap_Documentation.pdf
 
 ---
 
+## Quick start
+
+From a fresh clone, on Windows, macOS or Linux with Python 3.10 or later:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate            # Windows   (macOS / Linux: source .venv/bin/activate)
+pip install -r requirements-dense.txt
+```
+
+Copy the three challenge files into `data/raw/` (`hackathon_train.csv`, `icd10cm_codes.xlsx`,
+`SNOMEDCT_US_codes_and_descriptions.xlsx`), then run the single command:
+
+```bash
+python -m termmap predict --input <evaluation_file>.csv --output outputs/predictions.csv
+```
+
+That one command does everything, with no manual steps:
+
+1. downloads the model weights from the public Hugging Face repository
+   [`explolearner/termmap-weights`](https://huggingface.co/explolearner/termmap-weights) into `artifacts/`
+   (about 2.8 GB, first run only, no token needed);
+2. parses the dictionaries and trains the ranker on `data/raw/hackathon_train.csv` (first run only, about 15 to 30
+   minutes on a CPU; the result is cached in `artifacts/`);
+3. maps every row of the input file and writes `chunk_id, clinical_entity, icd10cm_code, snomed_code`.
+
+The input needs a `clinical_entity` column (`chunk_id` is carried through; `chunk_text` and `subconcept` are used
+when present). Later runs reuse the cache and start in about a minute. To reproduce the held-out evaluation and its
+error analysis:
+
+```bash
+python -m termmap evaluate --tag final
+python scripts/error_analysis.py outputs/eval_final
+```
+
+---
+
 ## Contents
 
+- [Quick start](#quick-start)
 - [How it works](#how-it-works)
 - [Results](#results)
 - [Setup](#setup)
@@ -255,6 +293,7 @@ the environment and are never written to disk by the code.
 |---|---|
 | `HF_TOKEN` | optional; not needed for the public weights repository |
 | `TERMMAP_ARTIFACTS_REPO` | optional; Hub repository to pull weights from (default `explolearner/termmap-weights`) |
+| `TERMMAP_NO_DOWNLOAD` | set to `1` to skip the automatic weight download |
 | `TERMMAP_FORCE_CPU` | set to `1` to keep encoders on CPU when a GPU is present |
 | `TERMMAP_CPU_THREADS` | threads used by encoders on CPU (default 2) |
 
