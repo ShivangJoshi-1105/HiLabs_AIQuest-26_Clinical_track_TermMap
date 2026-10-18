@@ -22,7 +22,7 @@ SNOMEDCT_US  433144002    0.279  Chronic kidney disease stage 3
 | All terms | **68.9%** | **53.8%** |
 | Gold code never seen in training (long tail) | 45.1% | 42.2% |
 
-Documentation: [`docs/TermMap_Documentation.pdf`](docs/TermMap_Documentation.pdf) &nbsp;|&nbsp; Demo video:
+Documentation: [`docs/TermMap_Documentation.pdf`](docs/TermMap_Documentation.pdf) &nbsp;|&nbsp; Weights: [Hugging Face](https://huggingface.co/explolearner/termmap-weights) &nbsp;|&nbsp; Demo video:
 
 ---
 
@@ -220,39 +220,31 @@ data/raw/icd10cm_codes.xlsx
 data/raw/SNOMEDCT_US_codes_and_descriptions.xlsx
 ```
 
-### Trained artifacts
+### Model weights (Hugging Face)
 
-The trained engine, the fine-tuned cross-encoder and the description embeddings are derived from the challenge
-data, so they are not committed to the source tree. They are attached to this repository's **Releases** page
-(release `artifacts-v1`), which is visible to everyone with access to the repository. No token is needed.
+**Weights: [huggingface.co/explolearner/termmap-weights](https://huggingface.co/explolearner/termmap-weights)**
+(public, no token needed)
 
-| Release file | Size | Needed for |
-|---|---|---|
-| `termmap_artifacts_core.zip` | 465 MB | engine, cross-encoder, dictionary caches, dense hits (required) |
-| `termmap_embeddings_icd10cm.zip` | 476 MB | encoding new terms for ICD-10-CM |
-| `termmap_embeddings_snomed_sapbert.zip` | 959 MB | encoding new terms for SNOMED CT (SapBERT) |
-| `termmap_embeddings_snomed_biolord.zip` | 959 MB | encoding new terms for SNOMED CT (BioLORD) |
+| Path | Content |
+|---|---|
+| `ce_model/` | fine-tuned `ncbi/MedCPT-Cross-Encoder` (second-stage reranker) |
+| `dense_<system>.emb.npy`, `.codes.npy` | SapBERT embeddings of every dictionary description |
+| `dense_biolord_<system>.emb.npy`, `.codes.npy` | BioLORD-2023 embeddings of every dictionary description |
 
-Download the zip files into one folder (for example `downloads/`) and run:
+Pull them into `artifacts/` with:
 
 ```bash
-python -m termmap unpack-artifacts downloads
+python -m termmap fetch-artifacts                  # about 2.8 GB
+python -m termmap fetch-artifacts --no-embeddings  # cross-encoder only, about 0.4 GB
 ```
 
-| File in `artifacts/` | Content |
-|---|---|
-| `engine.joblib` | ranker, alias index, priors, coding-team crosswalk |
-| `ce_model/` | fine-tuned MedCPT cross-encoder |
-| `terminology_*.parquet` | parsed dictionaries |
-| `dense_hits_*.parquet` | precomputed dense hits for the labelled terms |
-| `dense_*.emb.npy`, `dense_*.codes.npy` | SapBERT and BioLORD description embeddings, used to encode new terms |
+The trained ranker (`artifacts/engine.joblib`) is not published, because its alias index and priors are built from
+the labelled data. It is rebuilt from `data/raw/hackathon_train.csv` on the first `predict` (or with
+`python -m termmap train`), which takes about 15 to 30 minutes on a CPU. The other repository id can be set with
+`TERMMAP_ARTIFACTS_REPO`.
 
-Team members can pull the same files from the team's private Hugging Face repository with
-`python -m termmap fetch-artifacts` (needs `HF_TOKEN` and `TERMMAP_ARTIFACTS_REPO` in `.env`).
-
-Every artifact can also be rebuilt from the challenge files: `python -m termmap train` rebuilds the engine, and the
-notebooks in [GPU steps](#gpu-steps) rebuild the embeddings and the cross-encoder. Without the cross-encoder and
-embeddings the engine still runs end to end, on lexical retrieval and the ranker.
+Every weight can also be reproduced from the challenge files with the notebooks in [GPU steps](#gpu-steps).
+Without the downloaded weights the engine still runs end to end, on lexical retrieval and the ranker.
 
 ### Environment variables
 
@@ -261,8 +253,8 @@ the environment and are never written to disk by the code.
 
 | Variable | Purpose |
 |---|---|
-| `HF_TOKEN` | optional Hugging Face token for model downloads and the team artifacts repository |
-| `TERMMAP_ARTIFACTS_REPO` | optional, team Hugging Face repository with the trained artifacts |
+| `HF_TOKEN` | optional; not needed for the public weights repository |
+| `TERMMAP_ARTIFACTS_REPO` | optional; Hub repository to pull weights from (default `explolearner/termmap-weights`) |
 | `TERMMAP_FORCE_CPU` | set to `1` to keep encoders on CPU when a GPU is present |
 | `TERMMAP_CPU_THREADS` | threads used by encoders on CPU (default 2) |
 
@@ -270,7 +262,7 @@ the environment and are never written to disk by the code.
 
 ## Running the engine
 
-**Reproduce the submitted predictions (single command, after `unpack-artifacts`):**
+**Reproduce the submitted predictions (single command, after `fetch-artifacts`):**
 
 ```bash
 python -m termmap predict --input data/raw/<evaluation_file>.csv --output outputs/predictions.csv

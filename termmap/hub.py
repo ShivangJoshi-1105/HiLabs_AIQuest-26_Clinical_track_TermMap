@@ -9,15 +9,11 @@ from .config import ROOT, Config
 
 log = logging.getLogger(__name__)
 
-# trained engine, fine-tuned cross-encoder, dictionary caches and precomputed dense hits
-ARTIFACTS = (
-    "engine.joblib",
-    "ce_model/*",
-    "terminology_*.parquet",
-    "dense_hits_*.parquet",
-)
-# description embeddings for encoding new queries (large)
-EMBEDDINGS = ("dense_*.emb.npy", "dense_*.codes.npy")
+# public model weights: fine-tuned cross-encoder and description embeddings
+WEIGHTS = ("ce_model/*", "dense_*.emb.npy", "dense_*.codes.npy")
+# files derived from the labelled data or the dictionaries; private repositories only
+DATA_DERIVED = ("engine.joblib", "terminology_*.parquet", "dense_hits_*.parquet")
+DEFAULT_REPO = "explolearner/termmap-weights"
 
 
 def load_dotenv(path: Path = ROOT / ".env") -> None:
@@ -47,13 +43,12 @@ def unpack(cfg: Config, source: Path) -> list[str]:
 
 
 def fetch(cfg: Config, repo_id: str | None = None, embeddings: bool = True) -> Path:
+    """Download weights (and, from a private team repository, data-derived files)."""
     load_dotenv()
-    repo_id = repo_id or os.environ.get("TERMMAP_ARTIFACTS_REPO")
-    if not repo_id:
-        raise SystemExit("set TERMMAP_ARTIFACTS_REPO (or pass --repo) to the Hub repository holding the artifacts")
+    repo_id = repo_id or os.environ.get("TERMMAP_ARTIFACTS_REPO") or DEFAULT_REPO
     from huggingface_hub import snapshot_download
 
-    patterns = list(ARTIFACTS) + (list(EMBEDDINGS) if embeddings else [])
+    patterns = ["ce_model/*"] + (["dense_*.emb.npy", "dense_*.codes.npy"] if embeddings else []) + list(DATA_DERIVED)
     path = snapshot_download(repo_id=repo_id, repo_type="model", local_dir=str(cfg.artifact_dir),
                              allow_patterns=patterns, token=os.environ.get("HF_TOKEN") or None)
     log.info("artifacts from %s in %s", repo_id, path)
