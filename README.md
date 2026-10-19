@@ -22,7 +22,7 @@ SNOMEDCT_US  433144002    0.439  Chronic kidney disease stage 3
 | All terms | **68.9%** | **53.8%** |
 | Gold code never seen in training (long tail) | 45.1% | 42.2% |
 
-Documentation: [`docs/TermMap_Documentation.pdf`](docs/TermMap_Documentation.pdf) &nbsp;|&nbsp; Weights: [Hugging Face](https://huggingface.co/explolearner/termmap-weights) &nbsp;|&nbsp; Demo video:
+Documentation: [`docs/TermMap_Documentation.pdf`](docs/TermMap_Documentation.pdf) &nbsp;|&nbsp; Weights: [Hugging Face](https://huggingface.co/explolearner/termmap-weights) &nbsp;|&nbsp; Demo video: [Google Drive](https://drive.google.com/file/d/1MOzgHRKtS2zhc2zYM20REIGlclfuRndI/view?usp=drive_link)
 
 ---
 
