@@ -254,13 +254,28 @@ class TermMapEngine:
         return self._stage2_scores
 
     def builder(self, system: str) -> stage2.RequestBuilder:
-        return stage2.RequestBuilder(self.mapper(system), self.cfg.stage2_top_n, self.cfg.llm_examples)
+        # built once per system: it indexes every description of the terminology
+        if not hasattr(self, "_builders"):
+            self._builders = {}
+        if system not in self._builders:
+            self._builders[system] = stage2.RequestBuilder(self.mapper(system), self.cfg.stage2_top_n, self.cfg.llm_examples)
+        return self._builders[system]
 
     def stage2_requests(self, system: str, df: pd.DataFrame, preds: list[Prediction]) -> dict[str, list[dict]]:
         rows = [r for _, r in df.reset_index(drop=True).iterrows()]
         b = self.builder(system)
         return {"llm": b.llm_requests(rows, preds, self.mapper(system).alias),
                 "ce": b.ce_requests(rows, preds)}
+
+    def warm(self) -> None:
+        """Load every model the prediction path can use, so the first request is not slower than the rest."""
+        for system in SYSTEMS:
+            for retriever in self.mapper(system).dense.values():
+                retriever.warm()
+            self.builder(system)
+        model_dir = Path(self.cfg.artifact_dir) / "ce_model"
+        if self.cfg.live_stage2 and (model_dir / "config.json").exists() and not hasattr(self, "_ce_scorer"):
+            self._ce_scorer = stage2.CrossEncoderScorer(model_dir)
 
     def _score_ce_live(self, system: str, df: pd.DataFrame, preds: list[Prediction]) -> None:
         """Score requests that have no precomputed cross-encoder scores, when the

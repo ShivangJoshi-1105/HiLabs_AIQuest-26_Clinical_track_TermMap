@@ -281,6 +281,10 @@ class CrossEncoderScorer:
             torch.set_num_threads(int(os.environ.get("TERMMAP_CPU_THREADS", "2")))
         self.tok = AutoTokenizer.from_pretrained(model_dir)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(self.device).eval()
+        if self.device == "cpu" and os.environ.get("TERMMAP_INT8_MODELS", "0") == "1":
+            from .dense import quantize_model
+
+            self.model = quantize_model(self.model)
         self.max_len = max_len
 
     def score(self, reqs: list[dict], batch: int = 64) -> dict[str, list[float]]:

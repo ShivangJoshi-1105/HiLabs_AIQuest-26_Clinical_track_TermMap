@@ -35,10 +35,11 @@ st.set_page_config(page_title="TermMap", layout="wide")
 @st.cache_resource(show_spinner="Loading dictionaries and building indexes (about a minute on first start)...")
 def load_engine() -> TermMapEngine:
     cfg = Config.load()
+    # interactive input is new text: precomputed hits for the labelled terms are not needed
+    cfg.load_dense_hits = False
     path = Path(cfg.artifact_dir) / "engine.joblib"
     engine = TermMapEngine.load(cfg, path)
-    for s in SYSTEMS:
-        engine.mapper(s)
+    engine.warm()
     return engine
 
 

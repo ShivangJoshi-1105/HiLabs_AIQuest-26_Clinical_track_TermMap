@@ -50,6 +50,10 @@ class Config:
         "dense_biolord": "FremyCompany/BioLORD-2023",
     })
     k_dense: int = 40
+    # use int8 description embeddings (half the memory of float16) when present
+    dense_int8: bool = True
+    # load precomputed dense hits for the labelled terms (the demo app turns this off to save memory)
+    load_dense_hits: bool = True
     use_dense: bool = True
     # feature source name -> artifact file prefix (dense_hits_<system>.parquet etc.)
     dense_sources: dict = field(default_factory=lambda: {"dense": "dense", "dense_bl": "dense_biolord"})

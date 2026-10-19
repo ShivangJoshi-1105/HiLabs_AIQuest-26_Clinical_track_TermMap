@@ -75,6 +75,7 @@ python scripts/error_analysis.py outputs/eval_final
 - [Configuration](#configuration)
 - [Repository layout](#repository-layout)
 - [Design notes](#design-notes)
+- [Latency and footprint](#latency-and-footprint)
 - [External resources](#external-resources)
 
 ---
@@ -422,9 +423,56 @@ tokens supported by the chunk context. Together with default-child expansion for
 **Version drift.** All terminology knowledge is read from the supplied dictionary files at build time. Nothing is
 hardcoded. A new ICD-10-CM or SNOMED CT release is picked up by replacing the files and clearing `artifacts/`.
 
-**Throughput.** On a 4-core laptop CPU (2 threads), the lexical pipeline and ranker map a term to both systems in
-about 28 ms once the indexes are built. Index construction takes about one minute at start-up. Encoding new queries and
-cross-encoder scoring add a BERT-base forward pass per query and per candidate, which a GPU absorbs at chart volume.
+---
+
+## Latency and footprint
+
+`python -m termmap benchmark --n 50` maps each term to both systems as if it were unseen (no cached hits or scores)
+and reports per-term latency. Measured on a 4-core laptop CPU with 7.8 GB RAM, 4 threads, no GPU:
+
+| Terms | Count | Median | p95 | Max |
+|---|---|---|---|---|
+| Random labelled terms | 50 | 3.4 s | 4.6 s | 20.4 s (first term, before the start-up warm-up below was added) |
+| Hard cases (OCR noise, abbreviation collisions, specificity, laterality) | 8 | 2.7 s | 3.1 s | 3.2 s |
+| **All** | 58 | **3.2 s** | **4.6 s** | |
+
+| Stage, per term | Approximate time on CPU |
+|---|---|
+| Lexical retrieval, features and ranker | about 30 ms |
+| Dense retrieval: query encoding and search, 2 encoders x 2 systems | about 0.3 to 0.5 s |
+| Cross-encoder, 10 candidates x 2 systems | about 2 to 3 s |
+| One-time model load at start-up | 30 s |
+
+| Memory, all models loaded | |
+|---|---|
+| Lexical indexes and dictionaries | 1.6 GB |
+| Encoders, cross-encoder and description embeddings (int8) | 3.6 GB |
+
+**How latency went from about 90 s to about 3 s per term.** The first version memory-mapped the description
+embeddings (about 1 GB per SNOMED CT encoder); on a memory-constrained machine that re-read them from disk for every new
+term. The changes below return exactly the same predictions:
+
+| Change | Effect |
+|---|---|
+| Embeddings loaded into RAM once instead of memory-mapped | no disk reads per term |
+| Top candidates merged chunk by chunk instead of a full similarity matrix | bounded memory per query batch |
+| All models and the description index loaded at start-up | first request as fast as the rest |
+| Optional int8 embeddings (`python -m termmap quantize`) | half the memory (2.4 GB to 1.2 GB), 97 to 99% identical top-1 dense hits |
+
+The reported accuracy uses float16 embeddings; int8 is only used when the quantised files exist. We also tried int8
+dynamic quantisation of the encoders and of the cross-encoder: 2 to 2.5 times faster, but it changed 16 to 74% of their
+top choices, so it is not used.
+
+**At production scale.**
+
+| Technique | Benefit |
+|---|---|
+| GPU inference with batching | cross-encoder and encoders at a few milliseconds per term |
+| Approximate nearest-neighbour index (FAISS IVF-PQ or HNSW) | millisecond dense search over millions of descriptions, smaller memory |
+| Confidence cascade: cross-encoder only for terms the ranker is unsure about | most terms skip the most expensive stage |
+| Cache keyed by term and context | chart terms repeat heavily (`htn`, `sob`, `dm2`), so most lookups skip the models |
+| Distil the cross-encoder into a smaller model; ONNX Runtime with quantisation-aware training | lower cost per term without the accuracy loss of post-hoc quantisation |
+| Stateless workers sharing read-only, memory-mapped indexes | horizontal scaling at chart volume |
 
 ---
 

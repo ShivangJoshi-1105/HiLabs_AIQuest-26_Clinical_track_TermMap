@@ -232,8 +232,27 @@ multi-concept categories are heuristic).</p>
 <h2>8. Reproducibility, cost and external resources</h2>
 <p><code>python -m termmap predict --input &lt;evaluation file&gt; --output outputs/predictions.csv</code> reproduces the predictions end to end.
 Every split and model uses seed 13, LightGBM runs in deterministic mode, dense search and cross-encoder scoring are deterministic, and no
-sampling is used anywhere. On a 4-core laptop CPU (2 threads), the lexical pipeline and ranker map a term to both systems in about 28 ms after a
-one-minute index build. Encoding new queries and cross-encoder scoring add CPU cost per term; a GPU removes most of it.</p>
+sampling is used anywhere.</p>
+<div class="two">
+<table>
+  <tr><th>Latency per term, both systems, unseen terms (4-core laptop CPU, no GPU)</th><th class="n">median</th><th class="n">p95</th></tr>
+  <tr><td>50 random labelled terms</td><td class="n">3.4 s</td><td class="n">4.6 s</td></tr>
+  <tr><td>8 hard cases</td><td class="n">2.7 s</td><td class="n">3.1 s</td></tr>
+  <tr><td><b>All 58 terms</b> (one-time model load: 30 s)</td><td class="n"><b>3.2 s</b></td><td class="n"><b>4.6 s</b></td></tr>
+</table>
+<table>
+  <tr><th>Stage, per term</th><th class="n">approx. time</th></tr>
+  <tr><td>Lexical retrieval, features, ranker</td><td class="n">30 ms</td></tr>
+  <tr><td>Dense encoding and search (2 encoders x 2 systems)</td><td class="n">0.3 to 0.5 s</td></tr>
+  <tr><td>Cross-encoder (10 candidates x 2 systems)</td><td class="n">2 to 3 s</td></tr>
+</table>
+</div>
+<p>Latency fell from about 90 s to about 3 s per term by holding the description embeddings in RAM instead of memory-mapping them
+(which re-read 1 GB from disk per term on a memory-constrained machine), merging top candidates chunk by chunk, and loading every model
+at start-up; predictions are unchanged. Optional int8 embeddings halve memory (2.4 to 1.2 GB) with 97 to 99% identical top-1 dense hits;
+int8 encoders and cross-encoder were rejected because they changed 16 to 74% of top choices. At production scale: GPU batching,
+an approximate nearest-neighbour index (FAISS IVF-PQ or HNSW), running the cross-encoder only on low-confidence terms, a term-and-context
+cache, and a distilled cross-encoder served with ONNX Runtime.</p>
 <table>
   <tr><th>Resource</th><th>Use</th><th>Licence</th></tr>
   <tr><td>ICD-10-CM and SNOMED CT US descriptions (supplied files; SNOMED export dated 24 Sep 2026)</td><td>answer space, retrieval</td><td>CDC/NCHS public domain; SNOMED CT affiliate licence</td></tr>

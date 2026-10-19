@@ -149,6 +149,67 @@ def cmd_fetch_artifacts(cfg: Config, args) -> None:
     fetch(cfg, args.repo, embeddings=not args.no_embeddings)
 
 
+def cmd_quantize(cfg: Config, args) -> None:
+    from .dense import quantize
+
+    for path in sorted(Path(cfg.artifact_dir).glob("dense_*.emb.npy")):
+        i8, _ = quantize(path)
+        logging.info("wrote %s", i8.name)
+
+
+HARD_CASES = [
+    ("chronickidney disease stag 3", ""),
+    ("ra", "morning stiffness in hands, positive rheumatoid factor, on methotrexate"),
+    ("ra", "echo: dilated ra and rv, tricuspid regurgitation"),
+    ("ms", "patient confused, oriented to self only"),
+    ("diabetes", ""),
+    ("type 2 diabetes with diabetic neuropathy", "numbness in both feet"),
+    ("left knee oa", "x-ray shows joint space narrowing"),
+    ("afib w rvr", "ekg irregularly irregular, rate 130"),
+]
+
+
+def cmd_benchmark(cfg: Config, args) -> None:
+    """Per-term latency, median and p95, mapping each term to both systems."""
+    import numpy as np
+    import pandas as pd
+
+    train = read_terms(cfg.raw_dir / cfg.train_file)
+    sample = train.drop_duplicates("entity").sample(args.n, random_state=cfg.seed)
+    rows = [(e, c, "labelled sample") for e, c in zip(sample["entity"], sample["chunk_text"])]
+    rows += [(e, c, "hard case") for e, c in HARD_CASES]
+    if not args.use_cache:
+        cfg.load_dense_hits = False
+    engine = _load_or_train(cfg)
+    if not args.use_cache:
+        # treat every term as unseen: no precomputed dense hits, no precomputed second-stage scores
+        for system in SYSTEMS:
+            for r in engine.mapper(system).dense.values():
+                r._cache = {}
+        engine.stage2_scores.clear()
+    t = time.time()
+    engine.warm()
+    warm_s = time.time() - t
+    times = []
+    for entity, ctx, group in rows:
+        df = pd.DataFrame({"entity": [entity], "chunk_text": [ctx or ""]})
+        t = time.time()
+        engine.predict(df)
+        times.append((group, time.time() - t))
+
+    def stats(xs):
+        xs = np.asarray(xs) * 1000
+        return {"n": len(xs), "median_ms": round(float(np.median(xs))), "p95_ms": round(float(np.percentile(xs, 95))),
+                "mean_ms": round(float(xs.mean())), "max_ms": round(float(xs.max()))}
+
+    report = {"model_load_s": round(warm_s, 1), "all": stats([x for _, x in times])}
+    for g in ("labelled sample", "hard case"):
+        report[g] = stats([x for gg, x in times if gg == g])
+    out = Path(cfg.output_dir) / "benchmark.json"
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(json.dumps(report, indent=2))
+
+
 def cmd_unpack_artifacts(cfg: Config, args) -> None:
     from .hub import unpack
 
@@ -192,6 +253,10 @@ def main(argv=None) -> None:
     pf = sub.add_parser("fetch-artifacts")
     pf.add_argument("--repo", default=None, help="Hub repository id (default: TERMMAP_ARTIFACTS_REPO)")
     pf.add_argument("--no-embeddings", action="store_true", help="skip the description embeddings")
+    sub.add_parser("quantize")
+    pbm = sub.add_parser("benchmark")
+    pbm.add_argument("--n", type=int, default=50, help="labelled terms sampled at random")
+    pbm.add_argument("--use-cache", action="store_true", help="allow precomputed hits and scores")
     pu = sub.add_parser("unpack-artifacts")
     pu.add_argument("source", nargs="?", default=".", help="folder holding the downloaded termmap_*.zip files")
     pl = sub.add_parser("export-stage2")
@@ -209,7 +274,8 @@ def main(argv=None) -> None:
     {"train": cmd_train, "predict": cmd_predict, "evaluate": cmd_evaluate,
      "map": cmd_map, "embed": cmd_embed, "export-queries": cmd_export_queries,
      "export-stage2": cmd_export_stage2, "fetch-artifacts": cmd_fetch_artifacts,
-     "unpack-artifacts": cmd_unpack_artifacts}[args.cmd](cfg, args)
+     "unpack-artifacts": cmd_unpack_artifacts, "quantize": cmd_quantize,
+     "benchmark": cmd_benchmark}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":
